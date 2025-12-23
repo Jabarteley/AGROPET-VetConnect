@@ -2,12 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /* ================= HELPERS ================= */
+
     function isSignedIn() {
       return request.auth != null;
     }
 
     function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return isSignedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
     }
 
     function isAdmin() {
@@ -23,48 +27,82 @@ service cloud.firestore {
         (userRole() == "owner" || userRole() == "farmer");
     }
 
-    // Allow users to read/write their own profiles
+    /* ================= USERS ================= */
+
     match /users/{userId} {
-      allow read, write, create: if request.auth != null && request.auth.uid == userId;
+      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isAdmin();
     }
 
-    // Vets can read appointments scheduled with them, farmers/owners can read their own appointments
-    match /appointments/{appointmentId} {
-      allow read: if isVet() && request.auth.uid == resource.data.vetId ||
-                   isOwnerOrFarmer() && request.auth.uid == resource.data.userId ||
-                   isAdmin();
-      allow create: if isOwnerOrFarmer() && request.auth.uid == resource.data.userId;
-      allow write: if isOwnerOrFarmer() && request.auth.uid == resource.data.userId ||
-                    isVet() && request.auth.uid == resource.data.vetId ||
-                    isAdmin();
+    /* ================= VETERINARIANS ================= */
+
+    match /veterinarians/{vetId} {
+
+      // ✅ PUBLIC READ (FIXES YOUR ERROR)
+      allow read: if true;
+
+      // Vet creates their own profile
+      allow create: if isVet()
+        && request.auth.uid == request.resource.data.userId;
+
+      // Vet edits own profile, admin edits any
+      allow update: if
+        (isVet() && request.auth.uid == resource.data.userId)
+        || isAdmin();
+
+      // Only admin deletes
+      allow delete: if isAdmin();
     }
 
-    // Vets can read messages from their clients and send messages to them
-    // Farmers/owners can read messages with vets they've interacted with
+    /* ================= APPOINTMENTS ================= */
+
+   match /appointments/{appointmentId} {
+
+  // OWNER / FARMER: can read their own appointments
+  allow read: if
+    isOwnerOrFarmer() &&
+    resource.data.userId == request.auth.uid;
+
+  // VET: can read appointments assigned to them
+  allow read: if
+    isVet() &&
+    resource.data.vetId == request.auth.uid;
+
+  // ADMIN: unrestricted access
+  allow read: if isAdmin();
+
+  // CREATE
+  allow create: if
+    isOwnerOrFarmer() &&
+    request.auth.uid == request.resource.data.userId &&
+    request.resource.data.vetId is string;
+
+  // UPDATE
+  allow update: if
+    isAdmin() ||
+    (isVet() && request.auth.uid == resource.data.vetId) ||
+    (isOwnerOrFarmer() && request.auth.uid == resource.data.userId);
+
+  // DELETE
+  allow delete: if isAdmin();
+}
+
+    /* ================= MESSAGES ================= */
+
     match /messages/{messageId} {
-      allow read: if isVet() &&
-                   (request.auth.uid == resource.data.senderId ||
-                    request.auth.uid == resource.data.receiverId) ||
-                   isOwnerOrFarmer() &&
-                   (request.auth.uid == resource.data.senderId ||
-                    request.auth.uid == resource.data.receiverId) ||
-                   isAdmin();
-      allow write, create: if isOwnerOrFarmer() &&
-                            (request.auth.uid == resource.data.senderId ||
-                             request.auth.uid == resource.data.receiverId) ||
-                           isVet() &&
-                            (request.auth.uid == resource.data.senderId ||
-                             request.auth.uid == resource.data.receiverId) ||
-                           isAdmin();
+
+      allow read, create: if
+        isSignedIn() &&
+        (request.auth.uid == resource.data.senderId ||
+         request.auth.uid == resource.data.receiverId) ||
+        isAdmin();
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // Allow farmers and pet owners to read all veterinarians
-    match /veterinarians/{document} {
-      allow read: if isOwnerOrFarmer() || isVet() || isAdmin();
-      allow write: if isAdmin();
-    }
+    /* ================= FALLBACK ================= */
 
-    // Allow admin to read all data
     match /{document=**} {
       allow read, write: if isAdmin();
     }

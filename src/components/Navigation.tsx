@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 
 const Navigation = () => {
-  const { user, signOutUser } = useAuth();
+  const { user, userProfile, signOutUser } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -18,8 +18,8 @@ const Navigation = () => {
     }
   };
 
-  // Determine user role from user object
-  const userRole = user?.role;
+  // Determine user role from user profile
+  const userRole = userProfile?.role;
 
   // Define navigation links based on user role
   const getNavLinks = () => {
@@ -58,8 +58,11 @@ const Navigation = () => {
         ];
       default:
         return [
-          { name: 'Home', href: '/' },
+          { name: 'Dashboard', href: '/dashboard' },
           { name: 'Veterinarians', href: '/veterinarians' },
+          { name: 'Appointments', href: '/appointments' },
+          { name: 'Messages', href: '/messages' },
+          { name: 'Profile', href: '/profile' },
         ];
     }
   };
@@ -114,11 +117,11 @@ const Navigation = () => {
               <div className="hidden md:flex items-center space-x-4">
                 <div className="relative">
                   <div className="bg-gradient-to-r from-indigo-400 to-purple-500 border-2 border-white rounded-xl w-8 h-8 flex items-center justify-center text-white font-bold">
-                    {user.email.charAt(0).toUpperCase()}
+                    {userProfile?.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                   </div>
                 </div>
                 <span className="text-sm text-white hidden sm:block">
-                  {user.email}
+                  {userProfile?.name || user.email}
                 </span>
                 <button
                   onClick={handleSignOut}

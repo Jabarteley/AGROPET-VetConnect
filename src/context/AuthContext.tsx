@@ -1,19 +1,22 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  Auth, 
-  User, 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  Auth,
+  User,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { getUserProfile } from '@/lib/firestore';
+import { User as UserType } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
+  userProfile: UserType | null;
   signUp: (email: string, password: string) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOutUser: () => Promise<void>;
@@ -29,11 +32,26 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+
+      if (firebaseUser) {
+        // Load user profile from Firestore
+        try {
+          const profile = await getUserProfile(firebaseUser.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setUserProfile(null);
+        }
+      } else {
+        setUserProfile(null);
+      }
+
       setLoading(false);
     });
 
@@ -58,6 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value = {
     user,
+    userProfile,
     signUp,
     signIn,
     signOutUser,
