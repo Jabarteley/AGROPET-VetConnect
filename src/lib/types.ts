@@ -39,7 +39,7 @@ export interface Appointment {
   userId: string; // ID of the user who booked
   vetId: string; // ID of the veterinarian
   dateTime: Date;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'approved' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled';
   reason: string;
   notes?: string;
   createdAt: Date;

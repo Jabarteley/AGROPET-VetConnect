@@ -2,14 +2,14 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <Link href="/" className="text-xl font-bold text-indigo-700 flex items-center">
                 <span className="bg-indigo-600 text-white p-2 rounded-lg mr-2">V</span>
-                AGROPET VetConnect
+                <span>AGROPET VetConnect</span>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -21,7 +21,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
               >
                 Sign Up
               </Link>
@@ -32,9 +32,9 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-white to-indigo-50">
+        <div className="relative overflow-hidden bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="relative z-10 pb-8 bg-transparent sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+            <div className="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
               <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
                 <div className="sm:text-center lg:text-left">
                   <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
@@ -56,7 +56,7 @@ export default function Home() {
                     </div>
                     <div className="mt-3 sm:mt-0 sm:ml-3">
                       <Link
-                        href="/veterinarians"
+                        href="/auth/signup"
                         className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10 transition-colors duration-200"
                       >
                         Find a Vet
@@ -68,11 +68,11 @@ export default function Home() {
             </div>
           </div>
           <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-            <div className="h-64 w-full bg-gradient-to-br from-indigo-500 to-purple-600 sm:h-80 md:h-96 lg:w-full lg:h-full flex items-center justify-center">
-              <div className="text-center p-4 text-white">
+            <div className="h-64 w-full bg-indigo-50 sm:h-80 md:h-96 lg:w-full lg:h-full flex items-center justify-center">
+              <div className="text-center p-4">
                 <div className="text-6xl mb-4">🏥</div>
-                <p className="text-xl font-semibold">Veterinary Services</p>
-                <p className="mt-2">Connecting you with trusted professionals</p>
+                <p className="text-xl font-semibold text-gray-700">Veterinary Services</p>
+                <p className="mt-2 text-gray-600">Connecting you with trusted professionals</p>
               </div>
             </div>
           </div>
@@ -93,10 +93,12 @@ export default function Home() {
 
             <div className="mt-10">
               <div className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-12">
-                <div className="relative p-6 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+                <div className="relative p-6 bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-indigo-100 p-3 rounded-lg">
-                      <span className="text-2xl">🔍</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">Find Vets Easily</h3>
@@ -107,10 +109,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="relative p-6 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+                <div className="relative p-6 bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-green-100 p-3 rounded-lg">
-                      <span className="text-2xl">📅</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">Book Appointments</h3>
@@ -121,10 +125,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="relative p-6 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+                <div className="relative p-6 bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-blue-100 p-3 rounded-lg">
-                      <span className="text-2xl">💬</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">Secure Messaging</h3>
@@ -135,10 +141,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="relative p-6 bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+                <div className="relative p-6 bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-start">
                     <div className="flex-shrink-0 bg-purple-100 p-3 rounded-lg">
-                      <span className="text-2xl">👨‍⚕️</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">Verified Professionals</h3>
@@ -154,22 +162,17 @@ export default function Home() {
         </div>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-700">
-          <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-20 lg:px-8 lg:flex lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                <span className="block">Ready to improve animal welfare?</span>
-                <span className="block text-indigo-200">Join AGROPET VetConnect today.</span>
-              </h2>
-              <p className="mt-4 max-w-3xl text-lg text-indigo-100">
-                Connect with trusted veterinarians and ensure the health of your animals with our comprehensive platform.
-              </p>
-            </div>
+        <div className="bg-indigo-700">
+          <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              <span className="block">Ready to improve animal welfare?</span>
+              <span className="block text-indigo-200">Join AGROPET VetConnect today.</span>
+            </h2>
             <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
               <div className="inline-flex rounded-md shadow">
                 <Link
                   href="/auth/signup"
-                  className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 transition-colors duration-200"
+                  className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50"
                 >
                   Get started
                 </Link>

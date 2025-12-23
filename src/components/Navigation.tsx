@@ -18,26 +18,67 @@ const Navigation = () => {
     }
   };
 
-  // Define navigation links
-  const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Veterinarians', href: '/veterinarians' },
-    { name: 'Appointments', href: '/appointments' },
-    { name: 'Messages', href: '/messages' },
-  ];
+  // Determine user role from user object
+  const userRole = user?.role;
 
-  // Check if user is admin (in a real app, this would be based on user role)
-  const isAdmin = user && user.email === 'admin@agropetvetconnect.com';
+  // Define navigation links based on user role
+  const getNavLinks = () => {
+    if (!user) {
+      // Unauthenticated user links
+      return [
+        { name: 'Home', href: '/' },
+        { name: 'Veterinarians', href: '/veterinarians' },
+      ];
+    }
+
+    switch (userRole) {
+      case 'admin':
+        return [
+          { name: 'Dashboard', href: '/dashboard' },
+          { name: 'Veterinarians', href: '/veterinarians' },
+          { name: 'Appointments', href: '/admin/appointments' },
+          { name: 'Users', href: '/admin/users' },
+          { name: 'Messages', href: '/admin/messages' },
+        ];
+      case 'veterinarian':
+        return [
+          { name: 'Dashboard', href: '/vet-dashboard' },
+          { name: 'Appointments', href: '/appointments' },
+          { name: 'Messages', href: '/messages' },
+          { name: 'Profile', href: '/profile' },
+        ];
+      case 'farmer':
+      case 'pet_owner':
+        return [
+          { name: 'Dashboard', href: '/dashboard' },
+          { name: 'Veterinarians', href: '/veterinarians' },
+          { name: 'Appointments', href: '/appointments' },
+          { name: 'Messages', href: '/messages' },
+          { name: 'Profile', href: '/profile' },
+        ];
+      default:
+        return [
+          { name: 'Home', href: '/' },
+          { name: 'Veterinarians', href: '/veterinarians' },
+        ];
+    }
+  };
+
+  const navLinks = getNavLinks();
+
+  const isAdmin = userRole === 'admin';
+  const isVet = userRole === 'veterinarian';
+  const isFarmerOrPetOwner = userRole === 'farmer' || userRole === 'pet_owner';
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-gradient-to-r from-indigo-600 to-purple-700 shadow-xl sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-indigo-700 flex items-center">
-                <span className="bg-indigo-600 text-white p-2 rounded-lg mr-2">V</span>
-                AGROPET VetConnect
+              <Link href="/" className="text-xl font-bold text-white flex items-center animate-pulse">
+                <span className="bg-white text-indigo-600 p-2 rounded-lg mr-2 font-bold">V</span>
+                <span className="text-2xl">AGROPET VetConnect</span>
               </Link>
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
@@ -47,9 +88,9 @@ const Navigation = () => {
                   href={link.href}
                   className={`${
                     pathname === link.href
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium capitalize`}
+                      ? 'border-white text-white'
+                      : 'border-transparent text-indigo-100 hover:border-indigo-300 hover:text-white'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium capitalize transition-all duration-300 transform hover:scale-105`}
                 >
                   {link.name}
                 </Link>
@@ -59,9 +100,9 @@ const Navigation = () => {
                   href="/admin"
                   className={`${
                     pathname === '/admin'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-800'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium capitalize`}
+                      ? 'border-white text-white'
+                      : 'border-transparent text-indigo-100 hover:border-indigo-300 hover:text-white'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium capitalize transition-all duration-300 transform hover:scale-105`}
                 >
                   Admin
                 </Link>
@@ -72,16 +113,16 @@ const Navigation = () => {
             {user ? (
               <div className="hidden md:flex items-center space-x-4">
                 <div className="relative">
-                  <div className="bg-gray-200 border-2 border-dashed rounded-xl w-8 h-8 flex items-center justify-center text-gray-500">
+                  <div className="bg-gradient-to-r from-indigo-400 to-purple-500 border-2 border-white rounded-xl w-8 h-8 flex items-center justify-center text-white font-bold">
                     {user.email.charAt(0).toUpperCase()}
                   </div>
                 </div>
-                <span className="text-sm text-gray-700 hidden sm:block">
+                <span className="text-sm text-white hidden sm:block">
                   {user.email}
                 </span>
                 <button
                   onClick={handleSignOut}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+                  className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Sign out
                 </button>
@@ -90,13 +131,13 @@ const Navigation = () => {
               <div className="hidden md:flex space-x-4">
                 <Link
                   href="/auth/login"
-                  className="bg-white text-gray-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-300 transition-colors duration-200"
+                  className="bg-indigo-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-900 transition-all duration-300 transform hover:scale-105"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors duration-200"
+                  className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-green-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Sign Up
                 </Link>
@@ -106,7 +147,7 @@ const Navigation = () => {
             <div className="flex items-center md:hidden">
               <button
                 type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-indigo-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                 aria-expanded="false"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
@@ -138,7 +179,7 @@ const Navigation = () => {
       </div>
 
       {/* Mobile menu */}
-      <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:hidden`}>
+      <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:hidden bg-gradient-to-r from-indigo-700 to-purple-800`}>
         <div className="pt-2 pb-3 space-y-1">
           {navLinks.map((link) => (
             <Link
@@ -146,9 +187,9 @@ const Navigation = () => {
               href={link.href}
               className={`${
                 pathname === link.href
-                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'
+              } block pl-3 pr-4 py-2 text-base font-medium transition-all duration-300`}
               onClick={() => setMobileMenuOpen(false)}
             >
               {link.name}
@@ -159,9 +200,9 @@ const Navigation = () => {
               href="/admin"
               className={`${
                 pathname === '/admin'
-                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                  : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
-              } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'
+              } block pl-3 pr-4 py-2 text-base font-medium transition-all duration-300`}
               onClick={() => setMobileMenuOpen(false)}
             >
               Admin
@@ -173,7 +214,7 @@ const Navigation = () => {
                 handleSignOut();
                 setMobileMenuOpen(false);
               }}
-              className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+              className="block w-full text-left pl-3 pr-4 py-2 text-base font-medium text-indigo-200 hover:bg-indigo-600 hover:text-white transition-all duration-300"
             >
               Sign out
             </button>
@@ -181,14 +222,14 @@ const Navigation = () => {
             <>
               <Link
                 href="/auth/login"
-                className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+                className="block pl-3 pr-4 py-2 text-base font-medium text-indigo-200 hover:bg-indigo-600 hover:text-white transition-all duration-300"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/signup"
-                className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+                className="block pl-3 pr-4 py-2 text-base font-medium text-indigo-200 hover:bg-indigo-600 hover:text-white transition-all duration-300"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign Up

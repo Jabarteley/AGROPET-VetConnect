@@ -40,10 +40,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
           email,
           role,
           location,
-          createdAt: new Date(),
         });
 
-        router.push('/dashboard');
+        // Redirect to profile setup to complete the profile
+        router.push('/profile/setup');
       } else {
         await signIn(email, password);
         router.push('/dashboard');
@@ -177,7 +177,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
               ? "Don't have an account? " 
               : "Already have an account? "}
             <a 
-              href={type === 'login' ? '/signup' : '/login'} 
+              href={type === 'login' ? '/auth/signup' : '/auth/login'} 
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               {type === 'login' ? 'Sign up' : 'Sign in'}

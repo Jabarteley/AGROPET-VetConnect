@@ -1,13 +1,14 @@
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
   orderBy,
   serverTimestamp,
   Timestamp,
@@ -28,9 +29,11 @@ const convertTimestamps = (obj: any): any => {
 };
 
 // User operations
-export const createUserProfile = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+export const createUserProfile = async (userData: Omit<User, 'createdAt'>) => {
   try {
-    const userRef = await addDoc(collection(db, 'users'), {
+    // Use the user's UID as the document ID to match security rules
+    const userRef = doc(db, 'users', userData.id);
+    await setDoc(userRef, {
       ...userData,
       createdAt: serverTimestamp(),
     });
@@ -175,6 +178,73 @@ export const updateAppointment = async (appointmentId: string, appointmentData: 
     await updateDoc(appointmentRef, { ...appointmentData, updatedAt: serverTimestamp() });
   } catch (error) {
     console.error('Error updating appointment:', error);
+    throw error;
+  }
+};
+
+// Specific appointment status update functions
+export const approveAppointment = async (appointmentId: string) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
+      status: 'approved',
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error approving appointment:', error);
+    throw error;
+  }
+};
+
+export const confirmAppointment = async (appointmentId: string) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
+      status: 'confirmed',
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error confirming appointment:', error);
+    throw error;
+  }
+};
+
+export const completeAppointment = async (appointmentId: string) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
+      status: 'completed',
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error completing appointment:', error);
+    throw error;
+  }
+};
+
+export const cancelAppointment = async (appointmentId: string) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
+      status: 'cancelled',
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error cancelling appointment:', error);
+    throw error;
+  }
+};
+
+export const rescheduleAppointment = async (appointmentId: string, newDateTime: Date) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await updateDoc(appointmentRef, {
+      status: 'rescheduled',
+      dateTime: newDateTime,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error rescheduling appointment:', error);
     throw error;
   }
 };

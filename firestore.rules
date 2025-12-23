@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userRole() == "admin";
+    }
+
+    function isVet() {
+      return isSignedIn() && userRole() == "vet";
+    }
+
+    function isOwnerOrFarmer() {
+      return isSignedIn() &&
+        (userRole() == "owner" || userRole() == "farmer");
+    }
+
+    // Allow users to read/write their own profiles
+    match /users/{userId} {
+      allow read, write, create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Vets can read appointments scheduled with them, farmers/owners can read their own appointments
+    match /appointments/{appointmentId} {
+      allow read: if isVet() && request.auth.uid == resource.data.vetId ||
+                   isOwnerOrFarmer() && request.auth.uid == resource.data.userId ||
+                   isAdmin();
+      allow create: if isOwnerOrFarmer() && request.auth.uid == resource.data.userId;
+      allow write: if isOwnerOrFarmer() && request.auth.uid == resource.data.userId ||
+                    isVet() && request.auth.uid == resource.data.vetId ||
+                    isAdmin();
+    }
+
+    // Vets can read messages from their clients and send messages to them
+    // Farmers/owners can read messages with vets they've interacted with
+    match /messages/{messageId} {
+      allow read: if isVet() &&
+                   (request.auth.uid == resource.data.senderId ||
+                    request.auth.uid == resource.data.receiverId) ||
+                   isOwnerOrFarmer() &&
+                   (request.auth.uid == resource.data.senderId ||
+                    request.auth.uid == resource.data.receiverId) ||
+                   isAdmin();
+      allow write, create: if isOwnerOrFarmer() &&
+                            (request.auth.uid == resource.data.senderId ||
+                             request.auth.uid == resource.data.receiverId) ||
+                           isVet() &&
+                            (request.auth.uid == resource.data.senderId ||
+                             request.auth.uid == resource.data.receiverId) ||
+                           isAdmin();
+    }
+
+    // Allow farmers and pet owners to read all veterinarians
+    match /veterinarians/{document} {
+      allow read: if isOwnerOrFarmer() || isVet() || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Allow admin to read all data
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

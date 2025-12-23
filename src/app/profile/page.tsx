@@ -6,9 +6,11 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 import { getUserProfile, updateUserProfile } from '@/lib/firestore';
 import { User as UserType } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 const ProfilePage = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const [userData, setUserData] = useState<UserType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -36,9 +38,14 @@ const ProfilePage = () => {
               bio: profile.bio || '',
               contactNumber: profile.contactNumber || '',
             });
+          } else {
+            // If no profile exists, redirect to profile setup
+            router.push('/profile/setup');
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
+          // Redirect to profile setup if there's an error
+          router.push('/profile/setup');
         } finally {
           setLoading(false);
         }
@@ -46,7 +53,7 @@ const ProfilePage = () => {
     };
 
     fetchUserData();
-  }, [user]);
+  }, [user, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
