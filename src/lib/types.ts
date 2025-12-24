@@ -2,16 +2,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'farmer' | 'pet_owner' | 'veterinarian' | 'admin';
+  role: 'farmer' | 'owner' | 'veterinarian' | 'admin';
   location?: string;
   createdAt: Date;
   // Farmer/Pet Owner specific fields
   farmType?: string; // for farmers (poultry, cattle, etc.)
-  // Veterinarian specific fields
-  qualifications?: string;
-  specialization?: string;
-  serviceRegions?: string[];
-  verificationStatus?: 'pending' | 'verified' | 'rejected';
   profilePicture?: string;
   bio?: string;
   contactNumber?: string;
@@ -22,9 +17,11 @@ export interface Veterinarian {
   userId: string;
   name: string;
   email: string;
+  role: 'veterinarian';
   qualifications: string;
   specialization: string;
   serviceRegions: string[];
+  animalType?: string[];
   verificationStatus: 'pending' | 'verified' | 'rejected';
   profilePicture?: string;
   bio?: string;
@@ -64,4 +61,16 @@ export interface Review {
   rating: number; // 1-5 stars
   comment: string;
   createdAt: Date;
+}
+
+export interface Activity {
+  id: string;
+  type: 'user_created' | 'vet_requested' | 'appointment_booked' | 'appointment_completed' | 'review_submitted';
+  userId?: string;
+  vetId?: string;
+  appointmentId?: string;
+  description: string;
+  timestamp: Date;
+  userName?: string;
+  vetName?: string;
 }

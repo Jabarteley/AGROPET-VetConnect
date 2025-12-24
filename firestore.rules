@@ -38,8 +38,8 @@ service cloud.firestore {
 
     match /veterinarians/{vetId} {
 
-      // ✅ PUBLIC READ (FIXES YOUR ERROR)
-      allow read: if true;
+      // Allow authenticated users to read veterinarians
+      allow read: if isSignedIn();
 
       // Vet creates their own profile
       allow create: if isVet()

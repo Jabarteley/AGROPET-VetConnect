@@ -5,31 +5,68 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 
+import {
+  getVeterinarians,
+  updateVeterinarianProfile,
+  getTotalUsersCount,
+  getTotalAppointmentsCount,
+  getRecentActivities
+} from '@/lib/firestore';
+import { Veterinarian, Activity } from '@/lib/types';
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const [pendingVets, setPendingVets] = useState(5); // Mock data
-  const [totalUsers, setTotalUsers] = useState(120); // Mock data
-  const [totalAppointments, setTotalAppointments] = useState(45); // Mock data
+  const [pendingVets, setPendingVets] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalAppointments, setTotalAppointments] = useState(0);
+  const [totalVets, setTotalVets] = useState(0);
+  const [veterinarians, setVeterinarians] = useState<Veterinarian[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for pending veterinarians
-  const [veterinarians, setVeterinarians] = useState([
-    { id: '1', name: 'Dr. John Smith', email: 'john@example.com', specialization: 'Poultry', status: 'pending' },
-    { id: '2', name: 'Dr. Sarah Johnson', email: 'sarah@example.com', specialization: 'Cattle', status: 'pending' },
-    { id: '3', name: 'Dr. Michael Brown', email: 'michael@example.com', specialization: 'Pet Care', status: 'verified' },
-  ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch veterinarians
+        const vets = await getVeterinarians();
+        setVeterinarians(vets);
+        setPendingVets(vets.filter(v => v.verificationStatus === 'pending').length);
+        setTotalVets(vets.length);
 
-  const handleVerifyVet = (vetId: string) => {
-    setVeterinarians(vets => 
-      vets.map(vet => 
-        vet.id === vetId ? { ...vet, status: 'verified' } : vet
+        // Fetch other stats (you'll need to implement these functions)
+        // For now, let's create placeholder functions
+        const usersCount = await getTotalUsersCount();
+        const appointmentsCount = await getTotalAppointmentsCount();
+        const activities = await getRecentActivities(5);
+
+        setTotalUsers(usersCount);
+        setTotalAppointments(appointmentsCount);
+        setRecentActivities(activities);
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleVerifyVet = async (vetId: string) => {
+    await updateVeterinarianProfile(vetId, { verificationStatus: 'verified' });
+    setVeterinarians(vets =>
+      vets.map(vet =>
+        vet.id === vetId ? { ...vet, verificationStatus: 'verified' } : vet
       )
     );
     setPendingVets(prev => prev - 1);
   };
 
-  const handleRejectVet = (vetId: string) => {
-    setVeterinarians(vets => 
+  const handleRejectVet = async (vetId: string) => {
+    // You might want to delete the vet or move them to a 'rejected' status
+    await updateVeterinarianProfile(vetId, { verificationStatus: 'rejected' });
+    setVeterinarians(vets =>
       vets.filter(vet => vet.id !== vetId)
     );
     setPendingVets(prev => prev - 1);
@@ -125,42 +162,54 @@ const AdminDashboard = () => {
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Recent Activity</h3>
                   <div className="flow-root">
                     <ul className="divide-y divide-gray-200">
-                      <li className="py-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                              <span className="text-indigo-800 text-sm font-medium">JS</span>
+                      {recentActivities.length > 0 ? (
+                        recentActivities.map((activity) => (
+                          <li key={activity.id} className="py-4">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex-shrink-0">
+                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                                  <span className="text-indigo-800 text-sm font-medium">
+                                    {activity.vetName
+                                      ? activity.vetName.charAt(0)
+                                      : activity.userName
+                                        ? activity.userName.charAt(0)
+                                        : 'U'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {activity.vetName
+                                    ? `Dr. ${activity.vetName}`
+                                    : activity.userName
+                                      ? activity.userName
+                                      : 'User'}
+                                </p>
+                                <p className="text-sm text-gray-500 truncate">{activity.description}</p>
+                              </div>
+                              <div>
+                                {activity.type === 'vet_requested' && (
+                                  <button
+                                    onClick={() => handleVerifyVet(activity.vetId!)}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200"
+                                  >
+                                    Verify
+                                  </button>
+                                )}
+                                {activity.type === 'user_created' && (
+                                  <span className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-full text-gray-700 bg-gray-100">
+                                    New
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">Dr. John Smith</p>
-                            <p className="text-sm text-gray-500 truncate">Requested verification</p>
-                          </div>
-                          <div>
-                            <button className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200">
-                              Verify
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                      <li className="py-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                              <span className="text-indigo-800 text-sm font-medium">SJ</span>
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">Sarah Johnson</p>
-                            <p className="text-sm text-gray-500 truncate">Created account</p>
-                          </div>
-                          <div>
-                            <span className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-full text-gray-700 bg-gray-100">
-                              New
-                            </span>
-                          </div>
-                        </div>
-                      </li>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="py-4 text-center text-gray-500">
+                          No recent activity
+                        </li>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -173,56 +222,62 @@ const AdminDashboard = () => {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Manage Veterinarians</h2>
                 
                 <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                  <ul className="divide-y divide-gray-200">
-                    {veterinarians.map((vet) => (
-                      <li key={vet.id}>
-                        <div className="px-4 py-4 sm:px-6">
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm font-medium text-indigo-600 truncate">
-                              {vet.name}
-                            </div>
-                            <div className="ml-2 flex-shrink-0 flex">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                vet.status === 'verified' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : vet.status === 'pending' 
-                                    ? 'bg-yellow-100 text-yellow-800' 
-                                    : 'bg-red-100 text-red-800'
-                              }`}>
-                                {vet.status}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="mt-2 sm:flex sm:justify-between">
-                            <div className="sm:flex">
-                              <div className="mr-6 text-sm text-gray-500">
-                                <p>{vet.email}</p>
-                                <p className="mt-2">{vet.specialization}</p>
+                  {loading ? (
+                    <p className="px-4 py-4 text-center text-gray-500">Loading veterinarians...</p>
+                  ) : veterinarians.length === 0 ? (
+                    <p className="px-4 py-4 text-center text-gray-500">No veterinarians found.</p>
+                  ) : (
+                    <ul className="divide-y divide-gray-200">
+                      {veterinarians.map((vet) => (
+                        <li key={vet.id}>
+                          <div className="px-4 py-4 sm:px-6">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-indigo-600 truncate">
+                                {vet.name}
+                              </div>
+                              <div className="ml-2 flex-shrink-0 flex">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  vet.verificationStatus === 'verified'
+                                    ? 'bg-green-100 text-green-800'
+                                    : vet.verificationStatus === 'pending'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {vet.verificationStatus}
+                                </span>
                               </div>
                             </div>
-                            <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                              {vet.status === 'pending' && (
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => handleVerifyVet(vet.id)}
-                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                  >
-                                    Verify
-                                  </button>
-                                  <button
-                                    onClick={() => handleRejectVet(vet.id)}
-                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                                  >
-                                    Reject
-                                  </button>
+                            <div className="mt-2 sm:flex sm:justify-between">
+                              <div className="sm:flex">
+                                <div className="mr-6 text-sm text-gray-500">
+                                  <p>{vet.email}</p>
+                                  <p className="mt-2">{vet.specialization}</p>
                                 </div>
-                              )}
+                              </div>
+                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                {vet.verificationStatus === 'pending' && (
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={() => handleVerifyVet(vet.id)}
+                                      className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                    >
+                                      Verify
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectVet(vet.id)}
+                                      className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             )}

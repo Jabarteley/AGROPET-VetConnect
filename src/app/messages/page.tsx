@@ -4,14 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
-import { getMessages, sendMessage } from '@/lib/firestore';
+import { getConversations, getMessages, sendMessage } from '@/lib/firestore';
 import { Message } from '@/lib/types';
-
-// Mock function to get user name by ID (in a real app, this would fetch from Firestore)
-const getUserName = (userId: string) => {
-  // This is a mock function - in a real app, you'd fetch user data from Firestore
-  return userId === 'current-user-id' ? 'You' : 'Veterinarian';
-};
 
 const MessagesPage = () => {
   const { user } = useAuth();
@@ -22,86 +16,45 @@ const MessagesPage = () => {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  // Mock data for conversations
   useEffect(() => {
     if (user) {
-      // In a real app, this would fetch conversations for the user
-      const mockConversations = [
-        {
-          id: '1',
-          participant: 'Dr. John Smith',
-          lastMessage: 'Your appointment is confirmed for tomorrow',
-          timestamp: new Date(Date.now() - 3600000), // 1 hour ago
-          unread: 0,
-        },
-        {
-          id: '2',
-          participant: 'Dr. Sarah Johnson',
-          lastMessage: 'Please bring your pet\'s medical records',
-          timestamp: new Date(Date.now() - 86400000), // 1 day ago
-          unread: 2,
-        },
-      ];
-      setConversations(mockConversations);
-      setLoading(false);
+      setLoading(true);
+      const unsub = getConversations(user.uid, (conversations) => {
+        // Here you would fetch the user details for each conversation
+        // For now, we will just use the participantId as the name
+        const conversationsWithNames = conversations.map(conv => ({
+          ...conv,
+          participant: conv.participantId
+        }));
+        setConversations(conversationsWithNames);
+        setLoading(false);
+      });
+      return () => unsub();
     }
   }, [user]);
 
-  // Fetch messages for selected conversation
+
+
+
+
   useEffect(() => {
     if (selectedConversation && user) {
-      // In a real app, this would fetch messages from Firestore
-      const mockMessages = [
-        {
-          id: '1',
-          senderId: 'other-user-id',
-          receiverId: user.uid,
-          content: 'Hello! How can I help you today?',
-          timestamp: new Date(Date.now() - 3600000),
-          read: true,
-        },
-        {
-          id: '2',
-          senderId: user.uid,
-          receiverId: 'other-user-id',
-          content: 'Hi, I wanted to ask about the vaccination schedule for my dog.',
-          timestamp: new Date(Date.now() - 1800000),
-          read: true,
-        },
-        {
-          id: '3',
-          senderId: 'other-user-id',
-          receiverId: user.uid,
-          content: 'Sure, I can help with that. When was the last vaccination?',
-          timestamp: new Date(Date.now() - 1200000),
-          read: true,
-        },
-      ];
-      setMessages(mockMessages);
+      const unsub = getMessages(user.uid, selectedConversation.participantId, (messages) => {
+        setMessages(messages);
+      });
+      return () => unsub();
     }
   }, [selectedConversation, user]);
-
-  // Scroll to bottom of messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !selectedConversation) return;
 
     try {
-      // In a real app, this would send the message to Firestore
-      const messageData = {
-        id: Date.now().toString(), // Mock ID
+      await sendMessage({
         senderId: user.uid,
-        receiverId: 'other-user-id', // Mock receiver ID
+        receiverId: selectedConversation.participantId,
         content: newMessage,
-        timestamp: new Date(),
-        read: false,
-      };
-
-      // Add message to local state
-      setMessages(prev => [...prev, messageData as Message]);
+      });
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

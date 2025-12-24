@@ -19,6 +19,7 @@ const VeterinariansPage = () => {
     const fetchVeterinarians = async () => {
       try {
         const vets = await getAllVeterinarians();
+        console.log('Fetched veterinarians:', vets);
         setVeterinarians(vets);
         setFilteredVets(vets);
       } catch (error) {
@@ -53,15 +54,25 @@ const VeterinariansPage = () => {
     // For animal type, we'll assume veterinarians have an array of animal types they serve
     if (filters.animalType) {
       result = result.filter(vet =>
-        vet.specialization &&
-        vet.specialization.toLowerCase().includes(filters.animalType.toLowerCase())
+        vet.animalType && vet.animalType.some(type =>
+          type.toLowerCase().includes(filters.animalType.toLowerCase())
+        )
       );
     }
 
+    console.log('Filtered veterinarians:', result);
     setFilteredVets(result);
   }, [filters, veterinarians]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
@@ -107,7 +118,7 @@ const VeterinariansPage = () => {
                   name="location"
                   id="location"
                   value={filters.location}
-                  onChange={handleFilterChange}
+                  onChange={handleInputChange}
                   placeholder="City, State..."
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 />
@@ -122,7 +133,7 @@ const VeterinariansPage = () => {
                   name="specialization"
                   id="specialization"
                   value={filters.specialization}
-                  onChange={handleFilterChange}
+                  onChange={handleInputChange}
                   placeholder="e.g., Poultry, Cattle..."
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 />
@@ -137,7 +148,7 @@ const VeterinariansPage = () => {
                   name="animalType"
                   id="animalType"
                   value={filters.animalType}
-                  onChange={handleFilterChange}
+                  onChange={handleInputChange}
                   placeholder="e.g., Dogs, Cattle..."
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                 />

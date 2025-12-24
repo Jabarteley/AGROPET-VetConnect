@@ -4,12 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 import { useState, useEffect } from 'react';
-import { getUserProfile } from '@/lib/firestore';
-import { User as UserType } from '@/lib/types';
+import { getUserProfile, getAppointmentsForVet } from '@/lib/firestore';
+import { User as UserType, Appointment } from '@/lib/types';
 
 const VetDashboard = () => {
   const { user } = useAuth();
   const [userData, setUserData] = useState<UserType | null>(null);
+  const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,8 +19,20 @@ const VetDashboard = () => {
         try {
           const profile = await getUserProfile(user.uid);
           setUserData(profile);
+
+          // Fetch today's appointments for this vet
+          const appointments = await getAppointmentsForVet(user.uid);
+          // Filter to only today's appointments
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const filteredAppointments = appointments.filter(app => {
+            const appDate = new Date(app.dateTime.seconds * 1000);
+            appDate.setHours(0, 0, 0, 0);
+            return appDate.getTime() === today.getTime();
+          });
+          setTodayAppointments(filteredAppointments);
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('Error fetching user data or appointments:', error);
         } finally {
           setLoading(false);
         }
@@ -80,9 +93,34 @@ const VetDashboard = () => {
                 
                 <div className="mt-8">
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Today's Appointments</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p>You don't have any appointments scheduled for today.</p>
-                  </div>
+                  {todayAppointments.length > 0 ? (
+                    <div className="bg-white rounded-lg border p-4">
+                      <ul className="divide-y divide-gray-200">
+                        {todayAppointments.map((appointment) => (
+                          <li key={appointment.id} className="py-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{appointment.userName || 'User'}</p>
+                                <p className="text-sm text-gray-500">
+                                  {appointment.dateTime && typeof appointment.dateTime === 'object' && 'seconds' in appointment.dateTime
+                                    ? new Date(appointment.dateTime.seconds * 1000).toLocaleTimeString()
+                                    : new Date(appointment.dateTime).toLocaleTimeString()}
+                                </p>
+                              </div>
+                              <div className="text-sm text-gray-500 capitalize">{appointment.status}</div>
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-600">{appointment.reason}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p>You don't have any appointments scheduled for today.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
