@@ -14,7 +14,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'farmer' | 'pet_owner' | 'veterinarian'>('farmer');
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +37,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
           id: userId,
           name,
           email,
-          role,
           location,
         });
 
@@ -89,25 +87,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                   placeholder="John Doe"
                 />
               </div>
-              
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  required
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                >
-                  <option value="farmer">Farmer</option>
-                  <option value="pet_owner">Pet Owner</option>
-                  <option value="veterinarian">Veterinarian</option>
-                </select>
-              </div>
-              
+
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700">
                   Location

@@ -24,25 +24,34 @@ const DashboardPage = () => {
 
           // Redirect based on user role after fetching data
           if (profile) {
-            if (profile.role === 'admin') {
-              router.push('/admin');
+            // If user doesn't have a role, redirect to profile setup to select role
+            if (!profile.role) {
+              router.push('/profile/setup');
             } else if (profile.role === 'veterinarian') {
-              router.push('/vet-dashboard');
+              if (!profile.vetProfileId) {
+                // If veterinarian doesn't have a profile in the veterinarians collection, redirect to profile setup
+                router.push('/profile/setup');
+              } else {
+                // If veterinarian has a profile, redirect to vet dashboard
+                router.push('/vet-dashboard');
+              }
+            } else if (profile.role === 'admin') {
+              router.push('/admin');
             } else {
               // For farmers and pet owners
               router.push('/farmer-dashboard');
             }
           } else {
             // If no profile exists, redirect to profile setup
-            router.push('/profile');
+            router.push('/profile/setup');
           }
         } catch (err) {
           console.error('Error fetching user data:', err);
           setError('Unable to load user data. Redirecting to profile...');
 
-          // Redirect to profile page after showing error
+          // Redirect to profile setup page after showing error
           setTimeout(() => {
-            router.push('/profile');
+            router.push('/profile/setup');
           }, 2000);
         } finally {
           setLoading(false);

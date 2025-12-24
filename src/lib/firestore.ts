@@ -20,13 +20,27 @@ import { User, Veterinarian, Appointment, Message } from './types';
 
 // Helper function to convert Firestore timestamps to Date objects
 const convertTimestamps = (obj: any): any => {
-  const converted: any = { ...obj };
-  for (const key in converted) {
-    if (converted[key] instanceof Timestamp) {
-      converted[key] = converted[key].toDate();
-    }
+  if (obj === null || obj === undefined) {
+    return obj;
   }
-  return converted;
+
+  if (obj instanceof Timestamp) {
+    return obj.toDate();
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertTimestamps(item));
+  }
+
+  if (typeof obj === 'object') {
+    const converted: any = { ...obj };
+    for (const key in converted) {
+      converted[key] = convertTimestamps(converted[key]);
+    }
+    return converted;
+  }
+
+  return obj;
 };
 
 // User operations
@@ -71,12 +85,14 @@ export const updateUserProfile = async (userId: string, userData: Partial<User>)
 // Veterinarian operations
 export const createVeterinarianProfile = async (vetData: Omit<Veterinarian, 'id' | 'createdAt'>) => {
   try {
+    console.log('Creating veterinarian profile with data:', vetData);
     const vetRef = await addDoc(collection(db, 'veterinarians'), {
       ...vetData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       verificationStatus: 'pending',
     });
+    console.log('Veterinarian profile created with ref ID:', vetRef.id);
     return vetRef.id;
   } catch (error) {
     console.error('Error creating veterinarian profile:', error);
@@ -111,10 +127,14 @@ export const getAllVeterinarians = async () => {
   try {
     const vetsQuery = query(collection(db, 'veterinarians'));
     const vetDocs = await getDocs(vetsQuery);
-    return vetDocs.docs.map(doc => ({
+    console.log('Number of veterinarians fetched:', vetDocs.size);
+    console.log('Veterinarian documents:', vetDocs.docs);
+    const vets = vetDocs.docs.map(doc => ({
       id: doc.id,
       ...convertTimestamps(doc.data())
     })) as Veterinarian[];
+    console.log('Converted veterinarians:', vets);
+    return vets;
   } catch (error) {
     console.error('Error getting veterinarians:', error);
     throw error;
@@ -133,10 +153,14 @@ export const getVeterinarians = async (status?: 'verified' | 'pending' | 'reject
       q = query(collection(db, 'veterinarians'));
     }
     const vetDocs = await getDocs(q);
-    return vetDocs.docs.map(doc => ({
+    console.log(`Number of veterinarians fetched with status ${status || 'all'}:`, vetDocs.size);
+    console.log('Veterinarian documents:', vetDocs.docs);
+    const vets = vetDocs.docs.map(doc => ({
       id: doc.id,
       ...convertTimestamps(doc.data())
     })) as Veterinarian[];
+    console.log('Converted veterinarians:', vets);
+    return vets;
   } catch (error) {
     console.error(`Error getting veterinarians:`, error);
     throw error;
@@ -488,3 +512,4 @@ export const getRecentActivities = async (limit: number = 5) => {
     throw error;
   }
 };
+

@@ -19,7 +19,7 @@ service cloud.firestore {
     }
 
     function isVet() {
-      return isSignedIn() && userRole() == "vet";
+      return isSignedIn() && userRole() == "veterinarian";
     }
 
     function isOwnerOrFarmer() {
@@ -38,8 +38,8 @@ service cloud.firestore {
 
     match /veterinarians/{vetId} {
 
-      // Allow authenticated users to read veterinarians
-      allow read: if isSignedIn();
+      // ✅ PUBLIC READ (FIXES YOUR ERROR)
+      allow read: if true;
 
       // Vet creates their own profile
       allow create: if isVet()

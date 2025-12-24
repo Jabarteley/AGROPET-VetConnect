@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
-import { getUserProfile, updateUserProfile } from '@/lib/firestore';
-import { User as UserType } from '@/lib/types';
+import { getUserProfile, updateUserProfile, getVeterinarianProfile, updateVeterinarianProfile } from '@/lib/firestore';
+import { User as UserType, Veterinarian } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const router = useRouter();
   const [userData, setUserData] = useState<UserType | null>(null);
+  const [veterinarianData, setVeterinarianData] = useState<Veterinarian | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +20,10 @@ const ProfilePage = () => {
     location: '',
     bio: '',
     contactNumber: '',
+    qualifications: '',
+    specialization: '',
+    serviceRegions: '',
+    animalType: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,12 +36,24 @@ const ProfilePage = () => {
           const profile = await getUserProfile(user.uid);
           if (profile) {
             setUserData(profile);
+
+            // If user is a veterinarian, also fetch their veterinarian profile
+            let vetProfile = null;
+            if (profile.role === 'veterinarian' && profile.vetProfileId) {
+              vetProfile = await getVeterinarianProfile(profile.vetProfileId);
+              setVeterinarianData(vetProfile);
+            }
+
             setFormData({
               name: profile.name || '',
               email: profile.email || '',
               location: profile.location || '',
               bio: profile.bio || '',
               contactNumber: profile.contactNumber || '',
+              qualifications: vetProfile?.qualifications || '',
+              specialization: vetProfile?.specialization || '',
+              serviceRegions: vetProfile?.serviceRegions ? vetProfile.serviceRegions.join(', ') : '',
+              animalType: vetProfile?.animalType ? vetProfile.animalType.join(', ') : '',
             });
           } else {
             // If no profile exists, redirect to profile setup
@@ -78,6 +95,23 @@ const ProfilePage = () => {
           contactNumber: formData.contactNumber,
         });
 
+        // If user is a veterinarian, also update their veterinarian profile
+        if (userData?.role === 'veterinarian' && userData.vetProfileId) {
+          // Prepare service regions and animal types as arrays
+          const serviceRegions = formData.serviceRegions.split(',').map(region => region.trim()).filter(region => region);
+          const animalType = formData.animalType.split(',').map(type => type.trim()).filter(type => type);
+
+          await updateVeterinarianProfile(userData.vetProfileId, {
+            name: formData.name,
+            qualifications: formData.qualifications,
+            specialization: formData.specialization,
+            serviceRegions: serviceRegions,
+            animalType: animalType,
+            bio: formData.bio,
+            contactNumber: formData.contactNumber,
+          });
+        }
+
         // Update local state
         setUserData(prev => ({
           ...prev!,
@@ -86,6 +120,20 @@ const ProfilePage = () => {
           bio: formData.bio,
           contactNumber: formData.contactNumber,
         }) as UserType);
+
+        // Update veterinarian data if applicable
+        if (veterinarianData) {
+          setVeterinarianData(prev => ({
+            ...prev!,
+            name: formData.name,
+            qualifications: formData.qualifications,
+            specialization: formData.specialization,
+            serviceRegions: formData.serviceRegions.split(',').map(region => region.trim()).filter(region => region),
+            animalType: formData.animalType.split(',').map(type => type.trim()).filter(type => type),
+            bio: formData.bio,
+            contactNumber: formData.contactNumber,
+          }) as Veterinarian);
+        }
 
         setMessage('Profile updated successfully!');
         setIsEditing(false);
@@ -197,6 +245,68 @@ const ProfilePage = () => {
                         />
                       </div>
 
+                      {userData?.role === 'veterinarian' && (
+                        <>
+                          <div className="sm:col-span-3">
+                            <label htmlFor="qualifications" className="block text-sm font-medium text-gray-700">
+                              Qualifications
+                            </label>
+                            <input
+                              type="text"
+                              name="qualifications"
+                              id="qualifications"
+                              value={formData.qualifications}
+                              onChange={handleInputChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
+                              Specialization
+                            </label>
+                            <input
+                              type="text"
+                              name="specialization"
+                              id="specialization"
+                              value={formData.specialization}
+                              onChange={handleInputChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <label htmlFor="serviceRegions" className="block text-sm font-medium text-gray-700">
+                              Service Regions
+                            </label>
+                            <input
+                              type="text"
+                              name="serviceRegions"
+                              id="serviceRegions"
+                              value={formData.serviceRegions}
+                              onChange={handleInputChange}
+                              placeholder="Comma-separated regions (e.g., Lagos, Ibadan, Abuja)"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <label htmlFor="animalType" className="block text-sm font-medium text-gray-700">
+                              Animal Types
+                            </label>
+                            <input
+                              type="text"
+                              name="animalType"
+                              id="animalType"
+                              value={formData.animalType}
+                              onChange={handleInputChange}
+                              placeholder="Comma-separated types (e.g., Cattle, Poultry, Dogs)"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                        </>
+                      )}
+
                       <div className="sm:col-span-6">
                         <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
                           Bio
@@ -268,6 +378,34 @@ const ProfilePage = () => {
                         <dt className="text-sm font-medium text-gray-500">Contact Number</dt>
                         <dd className="mt-1 text-sm text-gray-900">{userData?.contactNumber || 'Not provided'}</dd>
                       </div>
+
+                      {userData?.role === 'veterinarian' && (
+                        <>
+                          <div className="sm:col-span-3">
+                            <dt className="text-sm font-medium text-gray-500">Qualifications</dt>
+                            <dd className="mt-1 text-sm text-gray-900">{veterinarianData?.qualifications || 'Not provided'}</dd>
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <dt className="text-sm font-medium text-gray-500">Specialization</dt>
+                            <dd className="mt-1 text-sm text-gray-900">{veterinarianData?.specialization || 'Not provided'}</dd>
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <dt className="text-sm font-medium text-gray-500">Service Regions</dt>
+                            <dd className="mt-1 text-sm text-gray-900">
+                              {veterinarianData?.serviceRegions ? veterinarianData.serviceRegions.join(', ') : 'Not provided'}
+                            </dd>
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <dt className="text-sm font-medium text-gray-500">Animal Types</dt>
+                            <dd className="mt-1 text-sm text-gray-900">
+                              {veterinarianData?.animalType ? veterinarianData.animalType.join(', ') : 'Not provided'}
+                            </dd>
+                          </div>
+                        </>
+                      )}
 
                       <div className="sm:col-span-6">
                         <dt className="text-sm font-medium text-gray-500">Bio</dt>

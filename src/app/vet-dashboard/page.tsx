@@ -4,12 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 import { useState, useEffect } from 'react';
-import { getUserProfile, getAppointmentsForVet } from '@/lib/firestore';
-import { User as UserType, Appointment } from '@/lib/types';
+import { getUserProfile, getAppointmentsForVet, getVeterinarianProfile } from '@/lib/firestore';
+import { User as UserType, Appointment, Veterinarian } from '@/lib/types';
 
 const VetDashboard = () => {
   const { user } = useAuth();
   const [userData, setUserData] = useState<UserType | null>(null);
+  const [vetData, setVetData] = useState<Veterinarian | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,6 +20,12 @@ const VetDashboard = () => {
         try {
           const profile = await getUserProfile(user.uid);
           setUserData(profile);
+
+          // Fetch veterinarian profile if user is a veterinarian
+          if (profile?.role === 'veterinarian' && profile.vetProfileId) {
+            const vetProfile = await getVeterinarianProfile(profile.vetProfileId);
+            setVetData(vetProfile);
+          }
 
           // Fetch today's appointments for this vet
           const appointments = await getAppointmentsForVet(user.uid);
@@ -63,7 +70,7 @@ const VetDashboard = () => {
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="px-4 py-6 sm:px-0">
               <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Welcome, Dr. {userData?.name || user?.email}!</h2>
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Welcome, Dr. {vetData?.name || userData?.name || user?.email}!</h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-blue-50 rounded-lg p-6">

@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
-import { createUserProfile, getUserProfile } from '@/lib/firestore';
+import { createUserProfile, getUserProfile, createVeterinarianProfile, updateUserProfile } from '@/lib/firestore';
 import { User as UserType } from '@/lib/types';
 
 const ProfileSetupPage = () => {
@@ -56,16 +56,59 @@ const ProfileSetupPage = () => {
     setError('');
 
     try {
-      // Create user profile
-      await createUserProfile({
-        id: user!.uid,
-        name: name || user!.email.split('@')[0], // Use email prefix as name if not provided
-        email: user!.email,
-        role: role as 'farmer' | 'pet_owner' | 'veterinarian',
-        location,
-        ...(role === 'veterinarian' && { specialization }),
-        createdAt: new Date(),
-      });
+      // Check if user profile exists, if not create it, otherwise update it
+      const existingProfile = await getUserProfile(user!.uid);
+      if (!existingProfile) {
+        // Create user profile if it doesn't exist
+        await createUserProfile({
+          id: user!.uid,
+          name: name || user!.email.split('@')[0], // Use email prefix as name if not provided
+          email: user!.email,
+          role: role as 'farmer' | 'pet_owner' | 'veterinarian',
+          location,
+          ...(role === 'veterinarian' && { specialization }),
+          createdAt: new Date(),
+        });
+      } else {
+        // Update user profile with role and other information
+        await updateUserProfile(user!.uid, {
+          name: name || user!.email.split('@')[0], // Use email prefix as name if not provided
+          role: role as 'farmer' | 'pet_owner' | 'veterinarian',
+          location,
+          ...(role === 'veterinarian' && { specialization }),
+        });
+      }
+
+      // If the user is a veterinarian, also create a veterinarian profile
+      if (role === 'veterinarian') {
+        console.log('Creating veterinarian profile for user:', user!.uid);
+        try {
+          const vetProfileId = await createVeterinarianProfile({
+            userId: user!.uid,
+            name: name || user!.email.split('@')[0],
+            email: user!.email,
+            role: 'veterinarian',
+            qualifications: '', // Will be filled later in the profile
+            specialization: specialization || '',
+            serviceRegions: [location], // Use the location as the service region
+            animalType: [], // Will be filled later in the profile
+            verificationStatus: 'pending', // Start with pending verification
+            createdAt: new Date(),
+          });
+
+          console.log('Veterinarian profile created with ID:', vetProfileId);
+
+          // Update the user profile to include the veterinarian profile ID
+          await updateUserProfile(user!.uid, {
+            vetProfileId: vetProfileId
+          });
+
+          console.log('User profile updated with vetProfileId:', vetProfileId);
+        } catch (error) {
+          console.error('Error creating veterinarian profile:', error);
+          throw error;
+        }
+      }
 
       // Redirect based on role
       if (role === 'veterinarian') {

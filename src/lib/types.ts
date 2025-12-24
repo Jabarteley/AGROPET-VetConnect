@@ -10,6 +10,8 @@ export interface User {
   profilePicture?: string;
   bio?: string;
   contactNumber?: string;
+  // Veterinarian specific field
+  vetProfileId?: string; // Reference to the veterinarian profile in the veterinarians collection
 }
 
 export interface Veterinarian {
