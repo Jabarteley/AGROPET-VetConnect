@@ -120,7 +120,7 @@ const NewAppointmentPage = () => {
                       >
                         <option value="">Choose a veterinarian</option>
                         {veterinarians.map(vet => (
-                          <option key={vet.id} value={vet.id}>
+                          <option key={vet.id} value={vet.userId}>
                             Dr. {vet.name} - {vet.specialization}
                           </option>
                         ))}

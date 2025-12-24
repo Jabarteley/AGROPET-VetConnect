@@ -38,6 +38,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
           name,
           email,
           location,
+          role: null,
         });
 
         // Redirect to profile setup to complete the profile

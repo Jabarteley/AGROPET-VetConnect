@@ -24,7 +24,7 @@ service cloud.firestore {
 
     function isOwnerOrFarmer() {
       return isSignedIn() &&
-        (userRole() == "owner" || userRole() == "farmer");
+        (userRole() == "pet_owner" || userRole() == "farmer");
     }
 
     /* ================= USERS ================= */

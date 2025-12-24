@@ -513,3 +513,18 @@ export const getRecentActivities = async (limit: number = 5) => {
   }
 };
 
+// Get all appointments
+export const getAllAppointments = async (): Promise<Appointment[]> => {
+  try {
+    const appointmentsQuery = query(collection(db, 'appointments'));
+    const appointmentsSnapshot = await getDocs(appointmentsQuery);
+    return appointmentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...convertTimestamps(doc.data())
+    })) as Appointment[];
+  } catch (error) {
+    console.error('Error getting all appointments:', error);
+    throw error;
+  }
+};
+

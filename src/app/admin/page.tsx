@@ -10,9 +10,15 @@ import {
   updateVeterinarianProfile,
   getTotalUsersCount,
   getTotalAppointmentsCount,
-  getRecentActivities
+  getRecentActivities,
+  getAllAppointments,
+  approveAppointment,
+  confirmAppointment,
+  completeAppointment,
+  cancelAppointment,
+  rescheduleAppointment
 } from '@/lib/firestore';
-import { Veterinarian, Activity } from '@/lib/types';
+import { Veterinarian, Activity, Appointment } from '@/lib/types';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -22,6 +28,7 @@ const AdminDashboard = () => {
   const [totalAppointments, setTotalAppointments] = useState(0);
   const [totalVets, setTotalVets] = useState(0);
   const [veterinarians, setVeterinarians] = useState<Veterinarian[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,9 +47,11 @@ const AdminDashboard = () => {
         const usersCount = await getTotalUsersCount();
         const appointmentsCount = await getTotalAppointmentsCount();
         const activities = await getRecentActivities(5);
+        const allAppointments = await getAllAppointments();
 
         setTotalUsers(usersCount);
         setTotalAppointments(appointmentsCount);
+        setAppointments(allAppointments);
         setRecentActivities(activities);
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -70,6 +79,78 @@ const AdminDashboard = () => {
       vets.filter(vet => vet.id !== vetId)
     );
     setPendingVets(prev => prev - 1);
+  };
+
+  const handleApproveAppointment = async (appointmentId: string) => {
+    try {
+      await approveAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'approved' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+    }
+  };
+
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    try {
+      await confirmAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'confirmed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error confirming appointment:', error);
+    }
+  };
+
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      await completeAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'completed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'cancelled' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointmentId: string) => {
+    // For now, we'll just mark it as rescheduled with a placeholder date
+    // In a real app, you would have a date picker
+    try {
+      await rescheduleAppointment(appointmentId, new Date());
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'rescheduled' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+    }
   };
 
   if (!user) {
@@ -296,9 +377,102 @@ const AdminDashboard = () => {
             {activeTab === 'appointments' && (
               <div className="px-4 py-6 sm:px-0">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Manage Appointments</h2>
-                <div className="bg-white shadow rounded-lg p-6">
-                  <p className="text-gray-500">Appointment management functionality would be implemented here.</p>
-                </div>
+
+                {loading ? (
+                  <p className="text-center text-gray-500">Loading appointments...</p>
+                ) : appointments.length === 0 ? (
+                  <p className="text-center text-gray-500">No appointments found.</p>
+                ) : (
+                  <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                    <ul className="divide-y divide-gray-200">
+                      {appointments.map((appointment) => (
+                        <li key={appointment.id}>
+                          <div className="px-4 py-4 sm:px-6">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-indigo-600 truncate">
+                                {appointment.userName || 'User'} - Dr. {appointment.vetId}
+                              </div>
+                              <div className="ml-2 flex-shrink-0 flex">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  appointment.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800' :
+                                  appointment.status === 'approved'
+                                    ? 'bg-green-100 text-green-800' :
+                                  appointment.status === 'confirmed'
+                                    ? 'bg-blue-100 text-blue-800' :
+                                  appointment.status === 'completed'
+                                    ? 'bg-purple-100 text-purple-800' :
+                                  appointment.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {appointment.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-2 sm:flex sm:justify-between">
+                              <div className="sm:flex">
+                                <div className="mr-6 text-sm text-gray-500">
+                                  <p>Reason: {appointment.reason}</p>
+                                  <p className="mt-1">
+                                    Date: {appointment.dateTime ? new Date(appointment.dateTime).toLocaleDateString() : 'N/A'}
+                                  </p>
+                                  <p className="mt-1">
+                                    Time: {appointment.dateTime ? new Date(appointment.dateTime).toLocaleTimeString() : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                <div className="flex space-x-2">
+                                  {appointment.status === 'pending' && (
+                                    <>
+                                      <button
+                                        onClick={() => handleApproveAppointment(appointment.id)}
+                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => handleCancelAppointment(appointment.id)}
+                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  )}
+                                  {appointment.status === 'approved' && (
+                                    <>
+                                      <button
+                                        onClick={() => handleConfirmAppointment(appointment.id)}
+                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                      >
+                                        Confirm
+                                      </button>
+                                      <button
+                                        onClick={() => handleCompleteAppointment(appointment.id)}
+                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                                      >
+                                        Complete
+                                      </button>
+                                    </>
+                                  )}
+                                  {(appointment.status === 'pending' || appointment.status === 'approved') && (
+                                    <button
+                                      onClick={() => handleRescheduleAppointment(appointment.id)}
+                                      className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700"
+                                    >
+                                      Reschedule
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>

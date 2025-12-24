@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
-import { getVetAppointments, approveAppointment, confirmAppointment, completeAppointment, cancelAppointment, rescheduleAppointment, getUserProfile, getVeterinarianProfile } from '@/lib/firestore';
+import { getVetAppointments, approveAppointment, confirmAppointment, completeAppointment, cancelAppointment, rescheduleAppointment, getUserProfile, getVeterinarianProfile, getUserProfile as getUserById } from '@/lib/firestore';
 import { Appointment, User as UserType, Veterinarian } from '@/lib/types';
 
 const VetAppointmentsPage = () => {
@@ -28,10 +28,30 @@ const VetAppointmentsPage = () => {
             // Fetch veterinarian profile
             const vet = await getVeterinarianProfile(user.uid);
             setVetProfile(vet);
-            
+
             // Fetch appointments assigned to this veterinarian
             const vetAppointments = await getVetAppointments(user.uid);
-            setAppointments(vetAppointments);
+
+            // Fetch user names for each appointment
+            const appointmentsWithUserNames = await Promise.all(
+              vetAppointments.map(async (appointment) => {
+                try {
+                  const user = await getUserById(appointment.userId);
+                  return {
+                    ...appointment,
+                    userName: user?.name || user?.email.split('@')[0] || 'User'
+                  };
+                } catch (error) {
+                  console.error('Error fetching user profile for appointment:', error);
+                  return {
+                    ...appointment,
+                    userName: 'User'
+                  };
+                }
+              })
+            );
+
+            setAppointments(appointmentsWithUserNames);
           }
         } catch (error) {
           console.error('Error fetching appointments:', error);
