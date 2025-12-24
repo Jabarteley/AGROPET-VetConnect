@@ -154,7 +154,7 @@ const VetDashboard = () => {
                   <div className="bg-green-50 rounded-lg p-6">
                     <h3 className="text-lg font-medium text-green-800">Manage Appointments</h3>
                     <p className="mt-2 text-green-600">View and manage your scheduled appointments.</p>
-                    <a href="/appointments" className="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 inline-block">
+                    <a href="/vet-appointments" className="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 inline-block">
                       View Appointments
                     </a>
                   </div>

@@ -93,14 +93,17 @@ const AppointmentsPage = () => {
           const profile = await getUserProfile(user.uid);
           setUserProfile(profile);
 
+          console.log('User profile role:', profile?.role); // DEBUG LOG
           let fetchedAppointments: Appointment[] = [];
 
           if (profile?.role === 'veterinarian') {
             // If user is a veterinarian, fetch appointments assigned to them
             fetchedAppointments = await getVetAppointments(user.uid);
+            console.log('Fetched vet appointments:', fetchedAppointments); // DEBUG LOG
           } else {
             // For other users, fetch their own appointments
             fetchedAppointments = await getUserAppointments(user.uid);
+            console.log('Fetched user appointments:', fetchedAppointments); // DEBUG LOG
           }
 
           // If the user is not a veterinarian, fetch veterinarian names for better display
@@ -124,7 +127,24 @@ const AppointmentsPage = () => {
             );
             setAppointments(appointmentsWithVetNames);
           } else {
-            setAppointments(fetchedAppointments);
+            const appointmentsWithUserNames = await Promise.all(
+              fetchedAppointments.map(async (appointment) => {
+                try {
+                  const userProfile = await getUserProfile(appointment.userId);
+                  return {
+                    ...appointment,
+                    userName: userProfile?.name || appointment.userId,
+                  };
+                } catch (error) {
+                  console.error('Error fetching user profile:', error);
+                  return {
+                    ...appointment,
+                    userName: appointment.userId,
+                  };
+                }
+              })
+            );
+            setAppointments(appointmentsWithUserNames);
           }
         } catch (error) {
           console.error('Error fetching appointments:', error);
