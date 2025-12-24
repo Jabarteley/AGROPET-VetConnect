@@ -4,22 +4,128 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
-import { createAppointment, getUserAppointments, getVetAppointments } from '@/lib/firestore';
-import { Appointment } from '@/lib/types';
+import { createAppointment, getUserAppointments, getVetAppointments, getUserProfile, getVeterinarianProfile, approveAppointment, confirmAppointment, completeAppointment, cancelAppointment, rescheduleAppointment } from '@/lib/firestore';
+import { Appointment, User as UserType, Veterinarian } from '@/lib/types';
 
 const AppointmentsPage = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [userProfile, setUserProfile] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reschedulingAppointmentId, setReschedulingAppointmentId] = useState<string | null>(null);
+  const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('');
+
+  const handleApproveAppointment = async (appointmentId: string) => {
+    try {
+      await approveAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'approved' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+    }
+  };
+
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    try {
+      await confirmAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'confirmed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error confirming appointment:', error);
+    }
+  };
+
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      await completeAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'completed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment(appointmentId);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'cancelled' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointmentId: string, newDateTime: Date) => {
+    try {
+      await rescheduleAppointment(appointmentId, newDateTime);
+      // Update the local state
+      setAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'rescheduled', dateTime: newDateTime } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchAppointments = async () => {
       if (user) {
         try {
-          // For now, we'll fetch user appointments
-          // In a real app, we'd check the user's role to determine which appointments to fetch
-          const userAppointments = await getUserAppointments(user.uid);
-          setAppointments(userAppointments);
+          // Fetch user profile to determine role
+          const profile = await getUserProfile(user.uid);
+          setUserProfile(profile);
+
+          let fetchedAppointments: Appointment[] = [];
+
+          if (profile?.role === 'veterinarian') {
+            // If user is a veterinarian, fetch appointments assigned to them
+            fetchedAppointments = await getVetAppointments(user.uid);
+          } else {
+            // For other users, fetch their own appointments
+            fetchedAppointments = await getUserAppointments(user.uid);
+          }
+
+          // If the user is not a veterinarian, fetch veterinarian names for better display
+          if (profile?.role !== 'veterinarian') {
+            const appointmentsWithVetNames = await Promise.all(
+              fetchedAppointments.map(async (appointment) => {
+                try {
+                  const vetProfile = await getVeterinarianProfile(appointment.vetId);
+                  return {
+                    ...appointment,
+                    vetName: vetProfile?.name || appointment.vetId
+                  };
+                } catch (error) {
+                  console.error('Error fetching veterinarian profile:', error);
+                  return {
+                    ...appointment,
+                    vetName: appointment.vetId
+                  };
+                }
+              })
+            );
+            setAppointments(appointmentsWithVetNames);
+          } else {
+            setAppointments(fetchedAppointments);
+          }
         } catch (error) {
           console.error('Error fetching appointments:', error);
         } finally {
@@ -81,16 +187,28 @@ const AppointmentsPage = () => {
                                   </svg>
                                 </div>
                                 <div className="ml-4">
-                                  <h3 className="text-lg font-medium text-gray-900">Appointment with Dr. {appointment.vetId}</h3>
-                                  <p className="text-sm text-gray-500 mt-1">Reason: {appointment.reason}</p>
+                                  {userProfile?.role === 'veterinarian' ? (
+                                    <div>
+                                      <h3 className="text-lg font-medium text-gray-900">Appointment with {appointment.userName || 'User'}</h3>
+                                      <p className="text-sm text-gray-500 mt-1">Reason: {appointment.reason}</p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <h3 className="text-lg font-medium text-gray-900">Appointment with Dr. {appointment.vetName || appointment.vetId}</h3>
+                                      <p className="text-sm text-gray-500 mt-1">Reason: {appointment.reason}</p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex flex-col items-end">
                                 <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                   appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                  appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-red-100 text-red-800'
+                                  appointment.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                  appointment.status === 'completed' ? 'bg-purple-100 text-purple-800' :
+                                  appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  appointment.status === 'rescheduled' ? 'bg-gray-100 text-gray-800' :
+                                  'bg-indigo-100 text-indigo-800'
                                 }`}>
                                   {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                                 </span>
@@ -98,6 +216,50 @@ const AppointmentsPage = () => {
                                   <p>Date: {appointment.dateTime ? new Date(appointment.dateTime).toLocaleDateString() : 'N/A'}</p>
                                   <p>Time: {appointment.dateTime ? new Date(appointment.dateTime).toLocaleTimeString() : 'N/A'}</p>
                                 </div>
+                                {userProfile?.role === 'veterinarian' && (
+                                  <div className="mt-2 flex space-x-2">
+                                    {appointment.status === 'pending' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleApproveAppointment(appointment.id)}
+                                          className="mt-2 text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                                        >
+                                          Approve
+                                        </button>
+                                        <button
+                                          onClick={() => handleCancelAppointment(appointment.id)}
+                                          className="mt-2 text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </>
+                                    )}
+                                    {appointment.status === 'approved' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleConfirmAppointment(appointment.id)}
+                                          className="mt-2 text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                        >
+                                          Confirm
+                                        </button>
+                                        <button
+                                          onClick={() => handleCompleteAppointment(appointment.id)}
+                                          className="mt-2 text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                        >
+                                          Complete
+                                        </button>
+                                      </>
+                                    )}
+                                    {(appointment.status === 'pending' || appointment.status === 'approved') && (
+                                      <button
+                                        onClick={() => handleRescheduleAppointment(appointment.id, new Date())} // This should be a proper date selection
+                                        className="mt-2 text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                                      >
+                                        Reschedule
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                             {appointment.notes && (

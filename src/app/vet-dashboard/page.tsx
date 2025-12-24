@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navigation from '@/components/Navigation';
 import { useState, useEffect } from 'react';
-import { getUserProfile, getAppointmentsForVet, getVeterinarianProfile } from '@/lib/firestore';
+import { getUserProfile, getAppointmentsForVet, getVeterinarianProfile, approveAppointment, confirmAppointment, completeAppointment, cancelAppointment, rescheduleAppointment } from '@/lib/firestore';
 import { User as UserType, Appointment, Veterinarian } from '@/lib/types';
 
 const VetDashboard = () => {
@@ -13,6 +13,76 @@ const VetDashboard = () => {
   const [vetData, setVetData] = useState<Veterinarian | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleApproveAppointment = async (appointmentId: string) => {
+    try {
+      await approveAppointment(appointmentId);
+      // Update the local state
+      setTodayAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'approved' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+    }
+  };
+
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    try {
+      await confirmAppointment(appointmentId);
+      // Update the local state
+      setTodayAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'confirmed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error confirming appointment:', error);
+    }
+  };
+
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      await completeAppointment(appointmentId);
+      // Update the local state
+      setTodayAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'completed' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment(appointmentId);
+      // Update the local state
+      setTodayAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'cancelled' } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointmentId: string, newDateTime: Date) => {
+    try {
+      await rescheduleAppointment(appointmentId, newDateTime);
+      // Update the local state
+      setTodayAppointments(prev =>
+        prev.map(app =>
+          app.id === appointmentId ? { ...app, status: 'rescheduled', dateTime: newDateTime } : app
+        )
+      );
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -118,6 +188,48 @@ const VetDashboard = () => {
                             </div>
                             <div className="mt-2">
                               <p className="text-sm text-gray-600">{appointment.reason}</p>
+                            </div>
+                            <div className="mt-3 flex space-x-2">
+                              {appointment.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={() => handleApproveAppointment(appointment.id)}
+                                    className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelAppointment(appointment.id)}
+                                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                              {appointment.status === 'approved' && (
+                                <>
+                                  <button
+                                    onClick={() => handleConfirmAppointment(appointment.id)}
+                                    className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => handleCompleteAppointment(appointment.id)}
+                                    className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                                  >
+                                    Complete
+                                  </button>
+                                </>
+                              )}
+                              {(appointment.status === 'pending' || appointment.status === 'approved') && (
+                                <button
+                                  onClick={() => handleRescheduleAppointment(appointment.id, new Date())} // This should be a proper date selection
+                                  className="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
+                                >
+                                  Reschedule
+                                </button>
+                              )}
                             </div>
                           </li>
                         ))}
