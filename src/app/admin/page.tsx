@@ -16,9 +16,13 @@ import {
   confirmAppointment,
   completeAppointment,
   cancelAppointment,
-  rescheduleAppointment
+  rescheduleAppointment,
+  getAllUsers,
+  getUserProfile,
+  updateUserProfile as updateFirestoreUserProfile,
+  deleteUserProfile
 } from '@/lib/firestore';
-import { Veterinarian, Activity, Appointment } from '@/lib/types';
+import { Veterinarian, Activity, Appointment, User as UserType } from '@/lib/types';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -29,6 +33,7 @@ const AdminDashboard = () => {
   const [totalVets, setTotalVets] = useState(0);
   const [veterinarians, setVeterinarians] = useState<Veterinarian[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,10 +53,12 @@ const AdminDashboard = () => {
         const appointmentsCount = await getTotalAppointmentsCount();
         const activities = await getRecentActivities(5);
         const allAppointments = await getAllAppointments();
+        const allUsers = await getAllUsers();
 
         setTotalUsers(usersCount);
         setTotalAppointments(appointmentsCount);
         setAppointments(allAppointments);
+        setUsers(allUsers);
         setRecentActivities(activities);
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -153,12 +160,43 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleViewUser = async (userId: string) => {
+    // In a real app, this would navigate to a user details page
+    console.log('View user:', userId);
+    // For now, we'll just log the action
+  };
+
+  const handleEditUser = async (userId: string) => {
+    try {
+      // In a real app, this would open an edit modal or navigate to an edit page
+      // For now, we'll just fetch and log the user data
+      const userToEdit = await getUserProfile(userId);
+      console.log('Edit user:', userToEdit);
+    } catch (error) {
+      console.error('Error fetching user for edit:', error);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteUserProfile(userId);
+      // Update the local state to remove the user
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      setTotalUsers(prev => prev - 1);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
   if (!user) {
     return null;
   }
 
-  // For demo purposes, we'll allow access to admin panel
-  // In a real app, you'd check if the user has admin role
+  
 
   return (
     <ProtectedRoute>
@@ -367,9 +405,76 @@ const AdminDashboard = () => {
             {activeTab === 'users' && (
               <div className="px-4 py-6 sm:px-0">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Manage Users</h2>
-                <div className="bg-white shadow rounded-lg p-6">
-                  <p className="text-gray-500">User management functionality would be implemented here.</p>
-                </div>
+
+                {loading ? (
+                  <p className="text-center text-gray-500">Loading users...</p>
+                ) : users.length === 0 ? (
+                  <p className="text-center text-gray-500">No users found.</p>
+                ) : (
+                  <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                    <ul className="divide-y divide-gray-200">
+                      {users.map((user) => (
+                        <li key={user.id}>
+                          <div className="px-4 py-4 sm:px-6">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-indigo-600 truncate">
+                                {user.name || user.email}
+                              </div>
+                              <div className="ml-2 flex-shrink-0 flex">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  user.role === 'admin'
+                                    ? 'bg-purple-100 text-purple-800' :
+                                  user.role === 'veterinarian'
+                                    ? 'bg-green-100 text-green-800' :
+                                  user.role === 'farmer'
+                                    ? 'bg-yellow-100 text-yellow-800' :
+                                  user.role === 'pet_owner'
+                                    ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {user.role}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-2 sm:flex sm:justify-between">
+                              <div className="sm:flex">
+                                <div className="mr-6 text-sm text-gray-500">
+                                  <p>Email: {user.email}</p>
+                                  <p className="mt-1">Location: {user.location || 'N/A'}</p>
+                                  <p className="mt-1">
+                                    Joined: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleViewUser(user.id)}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditUser(user.id)}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(user.id)}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 

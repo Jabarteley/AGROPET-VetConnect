@@ -98,11 +98,39 @@ const VetDashboard = () => {
           }
 
           // Fetch today's appointments for this vet
-          const appointments = await getAppointmentsForVet(user.uid);
+          let appointments = await getAppointmentsForVet(user.uid);
+
+          // Fetch user names for each appointment
+          const appointmentsWithUserNames = await Promise.all(
+            appointments.map(async (appointment) => {
+              try {
+                const user = await getUserProfile(appointment.userId);
+                return {
+                  ...appointment,
+                  userName: user?.name || user?.email.split('@')[0] || 'User'
+                };
+              } catch (error: any) {
+                console.error('Error fetching user profile for appointment:', error);
+                // If it's a permission error, we might need to handle it differently
+                if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+                  // Try to get limited user info or use appointment data instead
+                  return {
+                    ...appointment,
+                    userName: 'User'
+                  };
+                }
+                return {
+                  ...appointment,
+                  userName: 'User'
+                };
+              }
+            })
+          );
+
           // Filter to only today's appointments
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const filteredAppointments = appointments.filter(app => {
+          const filteredAppointments = appointmentsWithUserNames.filter(app => {
             const appDate = new Date(app.dateTime.seconds * 1000);
             appDate.setHours(0, 0, 0, 0);
             return appDate.getTime() === today.getTime();

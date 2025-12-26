@@ -21,9 +21,17 @@ const VetAppointmentsPage = () => {
       if (user) {
         try {
           // Fetch user profile to confirm role
-          const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
-          
+          let profile;
+          try {
+            profile = await getUserProfile(user.uid);
+            setUserProfile(profile);
+          } catch (error) {
+            console.error('Error getting user profile:', error);
+            // If we can't get the user profile, we can't verify they're a vet
+            setUserProfile(null);
+            return;
+          }
+
           if (profile?.role === 'veterinarian') {
             // Fetch veterinarian profile
             const vet = await getVeterinarianProfile(user.uid);
@@ -41,8 +49,16 @@ const VetAppointmentsPage = () => {
                     ...appointment,
                     userName: user?.name || user?.email.split('@')[0] || 'User'
                   };
-                } catch (error) {
+                } catch (error: any) {
                   console.error('Error fetching user profile for appointment:', error);
+                  // If it's a permission error, we might need to handle it differently
+                  if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+                    // Try to get limited user info or use appointment data instead
+                    return {
+                      ...appointment,
+                      userName: 'User'
+                    };
+                  }
                   return {
                     ...appointment,
                     userName: 'User'

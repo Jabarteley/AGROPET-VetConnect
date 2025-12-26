@@ -328,15 +328,17 @@ export const getVetAppointments = async (vetId: string) => {
 };
 
 export const getConversations = (userId: string, callback: (conversations: any[]) => void) => {
-  console.warn('PERFORMANCE WARNING: Fetching all messages and filtering on the client. Consider using a more efficient query.');
-  const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
+  const q = query(
+    collection(db, 'messages'),
+    where('participants', 'array-contains', userId),
+    orderBy('timestamp', 'desc')
+  );
 
-  const unsub = onSnapshot(q, (querySnapshot) => {
+  const unsub = onSnapshot(q, async (querySnapshot) => {
     const messages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-    const userMessages = messages.filter(m => m.senderId === userId || m.receiverId === userId);
-
+    
     const conversations: any = {};
-    userMessages.forEach(message => {
+    messages.forEach(message => {
       const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
       if (!conversations[otherUserId]) {
         conversations[otherUserId] = {
@@ -347,17 +349,18 @@ export const getConversations = (userId: string, callback: (conversations: any[]
       conversations[otherUserId].messages.push(message);
     });
 
-    const conversationsArray = Object.values(conversations).map((conv: any) => {
+    const conversationsArray = await Promise.all(Object.values(conversations).map(async (conv: any) => {
       const lastMessage = conv.messages[0];
+      const participant = await getUserProfile(conv.participantId);
       return {
         id: conv.participantId,
-        participant: 'Loading...', // We will fetch the name later
+        participant: participant?.name || participant?.email || 'User',
         participantId: conv.participantId,
         lastMessage: lastMessage.content,
         timestamp: lastMessage.timestamp,
         unread: conv.messages.filter((m: Message) => !m.read && m.receiverId === userId).length
       };
-    });
+    }));
 
     callback(conversationsArray);
   });
@@ -370,6 +373,7 @@ export const sendMessage = async (messageData: Omit<Message, 'id' | 'timestamp' 
   try {
     const messageRef = await addDoc(collection(db, 'messages'), {
       ...messageData,
+      participants: [messageData.senderId, messageData.receiverId],
       timestamp: serverTimestamp(),
       read: false,
     });
@@ -383,8 +387,7 @@ export const sendMessage = async (messageData: Omit<Message, 'id' | 'timestamp' 
 export const getMessages = (userId1: string, userId2: string, callback: (messages: Message[]) => void) => {
   const q = query(
     collection(db, 'messages'),
-    where('senderId', 'in', [userId1, userId2]),
-    where('receiverId', 'in', [userId1, userId2]),
+    where('participants', 'array-contains-all', [userId1, userId2]),
     orderBy('timestamp', 'asc')
   );
 
@@ -393,7 +396,7 @@ export const getMessages = (userId1: string, userId2: string, callback: (message
       id: doc.id,
       ...convertTimestamps(doc.data())
     })) as Message[];
-    // Have to filter again because the query is not perfect
+    // The query is now precise enough that we don't need to filter on the client.
     const filteredMessages = messages.filter(m => (m.senderId === userId1 && m.receiverId === userId2) || (m.senderId === userId2 && m.receiverId === userId1));
     callback(filteredMessages);
   });
@@ -524,6 +527,31 @@ export const getAllAppointments = async (): Promise<Appointment[]> => {
     })) as Appointment[];
   } catch (error) {
     console.error('Error getting all appointments:', error);
+    throw error;
+  }
+};
+
+// Get all users
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const usersQuery = query(collection(db, 'users'));
+    const usersSnapshot = await getDocs(usersQuery);
+    return usersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...convertTimestamps(doc.data())
+    })) as User[];
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    throw error;
+  }
+};
+
+// Delete user profile
+export const deleteUserProfile = async (userId: string) => {
+  try {
+    await deleteDoc(doc(db, 'users', userId));
+  } catch (error) {
+    console.error('Error deleting user profile:', error);
     throw error;
   }
 };

@@ -13,6 +13,8 @@ const Navigation = () => {
   const handleSignOut = async () => {
     try {
       await signOutUser();
+      // Redirect to homepage after signout
+      window.location.href = '/';
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -38,7 +40,7 @@ const Navigation = () => {
           { name: 'Veterinarians', href: '/veterinarians' },
           { name: 'Appointments', href: '/admin/appointments' },
           { name: 'Users', href: '/admin/users' },
-          { name: 'Messages', href: '/admin/messages' },
+         
         ];
       case 'veterinarian':
         return [

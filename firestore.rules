@@ -30,7 +30,13 @@ service cloud.firestore {
     /* ================= USERS ================= */
 
     match /users/{userId} {
-      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+      // Users can read their own profile
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Vets can read user profiles (for appointment purposes)
+      allow read: if isSignedIn() && isVet();
+      // Admins can read any user profile
+      allow read: if isAdmin();
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
       allow delete: if isAdmin();
     }
 
